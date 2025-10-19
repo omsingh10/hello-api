@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Student Management</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        table { border-collapse: collapse; width: 100%; margin-top: 20px; }
+        th, td { border: 1px solid #ccc; padding: 8px; text-align: left; }
+        th { background-color: #f4f4f4; }
+        input, button { padding: 5px; margin: 5px; }
+    </style>
+</head>
+<body>
+<h1>Student Management</h1>
+
+<h2>Add / Update Student</h2>
+<form id="studentForm">
+    <input type="hidden" id="studentId">
+    <input type="text" id="name" placeholder="Name" required>
+    <input type="number" id="age" placeholder="Age" required>
+    <input type="text" id="course" placeholder="Course" required>
+    <input type="number" id="marks" placeholder="Marks" step="0.1" required>
+    <input type="number" id="attendance" placeholder="Attendance" step="0.1" required>
+    <button type="submit">Save</button>
+    <button type="button" onclick="resetForm()">Reset</button>
+</form>
+
+<h2>Students List</h2>
+<table>
+    <thead>
+    <tr>
+        <th>ID</th><th>Name</th><th>Age</th><th>Course</th><th>Marks</th><th>Attendance</th><th>Actions</th>
+    </tr>
+    </thead>
+    <tbody id="studentsTable"></tbody>
+</table>
+
+<script>
+    const apiUrl = '/api/students'; // relative path now works with Spring Boot
+
+    // Fetch and display all students
+    async function fetchStudents() {
+        const res = await fetch(apiUrl);
+        const students = await res.json();
+        const tbody = document.getElementById('studentsTable');
+        tbody.innerHTML = '';
+        students.forEach(s => {
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td>${s.id}</td>
+                <td>${s.name}</td>
+                <td>${s.age}</td>
+                <td>${s.course}</td>
+                <td>${s.marks}</td>
+                <td>${s.attendance}</td>
+                <td>
+                    <button onclick="editStudent('${s.id}')">Edit</button>
+                    <button onclick="deleteStudent('${s.id}')">Delete</button>
+                </td>
+            `;
+            tbody.appendChild(row);
+        });
+    }
+
+    // Add or update a student
+    document.getElementById('studentForm').addEventListener('submit', async e => {
+        e.preventDefault();
+        const id = document.getElementById('studentId').value;
+        const student = {
+            name: document.getElementById('name').value,
+            age: parseInt(document.getElementById('age').value),
+            course: document.getElementById('course').value,
+            marks: parseFloat(document.getElementById('marks').value),
+            attendance: parseFloat(document.getElementById('attendance').value)
+        };
+
+        if(id) {
+            await fetch(`${apiUrl}/${id}`, {
+                method: 'PUT',
+                headers: {'Content-Type':'application/json'},
+                body: JSON.stringify(student)
+            });
+        } else {
+            await fetch(apiUrl, {
+                method: 'POST',
+                headers: {'Content-Type':'application/json'},
+                body: JSON.stringify(student)
+            });
+        }
+        resetForm();
+        fetchStudents();
+    });
+
+    // Delete a student
+    async function deleteStudent(id) {
+        if(confirm('Are you sure?')) {
+            await fetch(`${apiUrl}/${id}`, { method: 'DELETE' });
+            fetchStudents();
+        }
+    }
+
+    // Edit a student (fill the form)
+    async function editStudent(id) {
+        const res = await fetch(`${apiUrl}/${id}`);
+        const s = await res.json();
+        document.getElementById('studentId').value = s.id;
+        document.getElementById('name').value = s.name;
+        document.getElementById('age').value = s.age;
+        document.getElementById('course').value = s.course;
+        document.getElementById('marks').value = s.marks;
+        document.getElementById('attendance').value = s.attendance;
+    }
+
+    // Reset form
+    function resetForm() {
+        document.getElementById('studentId').value = '';
+        document.getElementById('studentForm').reset();
+    }
+
+    // Initial fetch
+    fetchStudents();
+</script>
+
+</body>
+</html>
